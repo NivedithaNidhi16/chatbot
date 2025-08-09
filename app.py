@@ -10,10 +10,13 @@ client = InferenceClient("mistralai/Mistral-7B-Instruct-v0.3", token=HF_TOKEN)
 
 # Chat function
 def chatbot(user_input, history):
+    if history is None:
+        history = []
+
     # Format conversation
     messages = [{"role": "system", "content": "You are a helpful AI chatbot."}]
     for h in history:
-        messages.append({"role": "user", "content": h[0]})  # fixed bracket
+        messages.append({"role": "user", "content": h[0]})
         messages.append({"role": "assistant", "content": h[1]})
     messages.append({"role": "user", "content": user_input})
 
@@ -26,20 +29,18 @@ def chatbot(user_input, history):
 
     bot_reply = response.choices[0].message["content"]
     history.append((user_input, bot_reply))
-    return history, ""  # "" clears the textbox
+    return history, ""  # clear input box
 
 # Gradio UI
 with gr.Blocks() as demo:
     gr.Markdown("# 🤖 Niveditha's AI Chatbot")
-    chatbot_ui = gr.Chatbot()
-    msg = gr.Textbox(label="Type your message", placeholder="Say something...", lines=1)
+    chatbot_ui = gr.Chatbot(type="messages")
+    msg = gr.Textbox(label="Type your message", placeholder="Ask me something...")
     clear = gr.Button("Clear Chat")
 
     state = gr.State([])
 
-    msg.submit(chatbot, [msg, state], [chatbot_ui, msg]).then(
-        lambda hist: hist, None, state
-    )
+    msg.submit(chatbot, [msg, state], [chatbot_ui, msg])
     clear.click(lambda: ([], ""), None, [chatbot_ui, msg])
 
 # Launch app
