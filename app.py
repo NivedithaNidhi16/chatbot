@@ -1,44 +1,40 @@
-import gradio as gr
-from huggingface_hub import InferenceClient
-import os
+import streamlit as st
+from langchain_openai import ChatOpenAI
+from langchain.schema import HumanMessage, AIMessage
 
-# Store API key securely
-HF_TOKEN = os.environ.get("HF_TOKEN")
+# Streamlit page config
+st.set_page_config(page_title="My Chatbot", page_icon="💬")
 
-# Create inference client
-client = InferenceClient("mistralai/Mistral-7B-Instruct-v0.3", token=HF_TOKEN)
+# Title
+st.title("💬 My Chatbot")
 
-# Chat function
-def chatbot(user_input, history):
-    # Format conversation
-    messages = [{"role": "system", "content": "You are a helpful AI chatbot."}]
-    for h in history:
-        messages.append({"role": "user", "content": h[0]})
-        messages.append({"role": "assistant", "content": h[1]})
-    messages.append({"role": "user", "content": user_input})
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    # Get model response
-    response = client.chat.completions.create(
-        model="mistralai/Mistral-7B-Instruct-v0.3",
-        messages=messages,
-        max_tokens=256
-    )
+# Display previous messages
+for message in st.session_state.messages:
+    if isinstance(message, HumanMessage):
+        with st.chat_message("user"):
+            st.markdown(message.content)
+    elif isinstance(message, AIMessage):
+        with st.chat_message("assistant"):
+            st.markdown(message.content)
 
-    bot_reply = response.choices[0].message["content"]
-    history.append((user_input, bot_reply))
-    return history, history
+# Input box at bottom
+user_input = st.chat_input("Type your message...")  # This automatically clears after sending
 
-# Gradio UI
-with gr.Blocks() as demo:
-    gr.Markdown("# 🤖 Niveditha's AI Chatbot")
-    chatbot_ui = gr.Chatbot()
-    msg = gr.Textbox(label="Type your message")
-    clear = gr.Button("Clear Chat")
+if user_input:
+    # Save user's message
+    st.session_state.messages.append(HumanMessage(content=user_input))
+    with st.chat_message("user"):
+        st.markdown(user_input)
 
-    state = gr.State([])
+    # Call the LLM
+    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+    response = llm(st.session_state.messages)
 
-    msg.submit(chatbot, [msg, state], [chatbot_ui, state])
-    clear.click(lambda: ([], []), None, [chatbot_ui, state])
-
-# Launch app
-demo.launch()
+    # Save AI's response
+    st.session_state.messages.append(AIMessage(content=response.content))
+    with st.chat_message("assistant"):
+        st.markdown(response.content)
