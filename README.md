@@ -1,12 +1,3 @@
----
-title: Niveditha Chatbot
-emoji: 👁
-colorFrom: gray
-colorTo: red
-sdk: gradio
-sdk_version: 5.42.0
-app_file: app.py
-pinned: false
----
-
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+# Niveditha's AI Chatbot
+This is a free AI chatbot built with Gradio and powered by the Mistral-7B model on Hugging Face.
+It can answer questions, explain concepts, and chat in natural language.
