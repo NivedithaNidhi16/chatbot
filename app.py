@@ -13,8 +13,8 @@ def chatbot(user_input, history):
     # Format conversation
     messages = [{"role": "system", "content": "You are a helpful AI chatbot."}]
     for h in history:
-        messages.append({"role": "user", "content": h[0]])
-        messages.append({"role": "assistant", "content": h[1]])
+        messages.append({"role": "user", "content": h[0]})  # fixed bracket
+        messages.append({"role": "assistant", "content": h[1]})
     messages.append({"role": "user", "content": user_input})
 
     # Get model response
@@ -26,7 +26,7 @@ def chatbot(user_input, history):
 
     bot_reply = response.choices[0].message["content"]
     history.append((user_input, bot_reply))
-    return history, ""  # "" clears the input box
+    return history, ""  # "" clears the textbox
 
 # Gradio UI
 with gr.Blocks() as demo:
