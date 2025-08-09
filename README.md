@@ -1,3 +1,12 @@
-# Niveditha's AI Chatbot
-This is a free AI chatbot built with Gradio and powered by the Mistral-7B model on Hugging Face.
-It can answer questions, explain concepts, and chat in natural language.
+---
+title: My AI Agent Demo
+emoji: 🚀
+colorFrom: blue
+colorTo: green
+sdk: gradio
+sdk_version: "4.0.0"
+app_file: app.py
+pinned: false
+---
+
+This is an AI Agent demo running on Hugging Face Spaces.
