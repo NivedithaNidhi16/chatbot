@@ -20,9 +20,9 @@ def chatbot(user_input, history):
 
     # Call Hugging Face API for chat completion
     response = client.chat_completion(
-        model="mistralai/Mistral-7B-Instruct-v0.3",
+        model="tiiuae/falcon-7b-instruct",
         messages=messages,
-        max_tokens=256
+        max_tokens=500
     )
 
     bot_reply = response.choices[0].message["content"]
