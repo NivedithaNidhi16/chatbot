@@ -20,7 +20,7 @@ def chatbot(user_input, history):
 
     # Call Hugging Face API for chat completion
     response = client.chat_completion(
-        model="tiiuae/falcon-7b-instruct",
+        model="mistralai/Mistral-7B-Instruct-v0.3",
         messages=messages,
         max_tokens=500
     )
