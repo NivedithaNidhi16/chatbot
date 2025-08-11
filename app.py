@@ -1,9 +1,9 @@
 import gradio as gr
 from huggingface_hub import InferenceClient
 import os
-import time
 from datetime import datetime
 
+# Load Hugging Face token from environment variable
 HF_TOKEN = os.environ.get("HF_TOKEN")
 client = InferenceClient(token=HF_TOKEN)
 
@@ -12,19 +12,18 @@ def get_timestamp():
 
 def chatbot(user_input, history):
     if history is None:
-        # Add initial greeting with timestamp
+        # Initial greeting from bot with timestamp
         history = [{"role": "assistant", "content": "Hello! I'm Niveditha's AI chatbot. How can I help you today?", "timestamp": get_timestamp()}]
 
     # Add user message with timestamp
     history.append({"role": "user", "content": user_input, "timestamp": get_timestamp()})
 
-    # Prepare messages for the API (remove timestamp for API)
+    # Prepare messages for API (strip timestamps)
     messages = [{"role": "system", "content": "You are a helpful AI chatbot."}]
-    # Include conversation but strip timestamp for the model input
     for msg in history:
         messages.append({"role": msg["role"], "content": msg["content"]})
 
-    # Call Hugging Face API
+    # Call Hugging Face chat completion API
     response = client.chat_completion(
         model="mistralai/Mistral-7B-Instruct-v0.3",
         messages=messages,
@@ -35,49 +34,51 @@ def chatbot(user_input, history):
     # Add bot reply with timestamp
     history.append({"role": "assistant", "content": bot_reply, "timestamp": get_timestamp()})
 
-    return history, ""  # clear input
+    return history, ""  # clear user input box
 
-# Gradio UI
+# Function to add typing indicator before calling chatbot
+def submit_message(user_input, history):
+    if history is None:
+        history = []
+    # Add temporary typing message
+    history.append({"role": "assistant", "content": "_Bot is typing..._", "timestamp": ""})
+    yield history, ""
+
+    # Remove typing message before real reply
+    history.pop()
+
+    new_history, _ = chatbot(user_input, history)
+    yield new_history, ""
+
+# Format messages for Gradio Chatbot component with timestamps
+def format_messages(history):
+    formatted = []
+    if history is None:
+        return formatted
+    for msg in history:
+        role = msg["role"]
+        content = msg["content"]
+        timestamp = msg.get("timestamp", "")
+        # Display message with timestamp below it
+        if role == "user":
+            formatted.append((f"{content}\n\n*{timestamp}*", None))
+        else:
+            formatted.append((f"🤖 {content}\n\n*{timestamp}*", None))
+    return formatted
+
 with gr.Blocks() as demo:
-    gr.Markdown("# 🤖 Niveditha's AI Chatbot with Timestamp and Typing Indicator")
+    gr.Markdown("# 🤖 Niveditha's AI Chatbot with Timestamp & Typing Indicator")
 
-    chatbot_ui = gr.Chatbot(elem_id="chatbot").style(height=400)
+    chatbot_ui = gr.Chatbot(elem_id="chatbot", type="messages")
     msg = gr.Textbox(label="Type your message", placeholder="Ask me something...")
     clear = gr.Button("Clear Chat")
     state = gr.State(None)
 
-    # This function adds typing indicator by showing a temporary message
-    def submit_message(user_input, history):
-        if history is None:
-            history = []
-        # Add a temporary "typing" message from bot
-        history.append({"role": "assistant", "content": "_Bot is typing..._", "timestamp": ""})
-        # Update UI with typing message
-        yield history, ""
-
-        # Remove typing message before getting actual reply
-        history.pop()
-
-        # Call the main chatbot function to get real reply
-        new_history, _ = chatbot(user_input, history)
-        yield new_history, ""
-
+    # Wire up submit with typing indicator
     msg.submit(submit_message, [msg, state], [chatbot_ui, msg])
+    # Clear chat and reset with initial greeting
     clear.click(lambda: ([{"role": "assistant", "content": "Hello! I'm Niveditha's AI chatbot. How can I help you today?", "timestamp": get_timestamp()}], ""), None, [chatbot_ui, msg])
-
-    # Custom rendering of messages with timestamp
-    def format_messages(history):
-        # Convert history into list of tuples for Gradio Chatbot
-        formatted = []
-        for msg in history:
-            role = msg["role"]
-            content = msg["content"]
-            timestamp = msg.get("timestamp", "")
-            # Format message with timestamp
-            formatted.append((f"{content}\n\n*{timestamp}*", None if role == "user" else "🤖"))
-        return formatted
-
-    # Update chat UI with formatted messages
-    state.change(lambda h: format_messages(h), state, chatbot_ui)
+    # Update chatbot UI to formatted messages whenever state changes
+    state.change(format_messages, state, chatbot_ui)
 
 demo.launch()
