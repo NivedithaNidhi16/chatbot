@@ -3,7 +3,12 @@ import json
 from huggingface_hub import InferenceClient
 
 # Hugging Face API Client
-HF_TOKEN = chatbot # or load from .env
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+HF_TOKEN = os.getenv("HF_TOKEN")
 client = InferenceClient(token=HF_TOKEN)
 
 # Store loaded JSON
