@@ -3,7 +3,7 @@ import json
 from huggingface_hub import InferenceClient
 
 # Hugging Face API Client
-HF_TOKEN = HF_TOKEN # or load from .env
+HF_TOKEN = chatbot # or load from .env
 client = InferenceClient(token=HF_TOKEN)
 
 # Store loaded JSON
