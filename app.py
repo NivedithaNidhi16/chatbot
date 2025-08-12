@@ -39,8 +39,13 @@ def chatbot(user_input, history):
     # Add JSON context if loaded
     if json_data:
         messages.append({
-            "role": "system",
-            "content": f"Here is extra JSON context:\n{json.dumps(json_data, indent=2)}"
+    "role": "system",
+    "content": f"""You are an AI assistant with access to a JSON document. 
+        Only use facts from this JSON when answering relevant questions.
+        If the answer is not in the JSON, say "I don't know based on the given data."
+        JSON data:
+        {json.dumps(json_data, indent=2)}
+        """
         })
 
     # Add history + new user message
