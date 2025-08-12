@@ -1,52 +1,50 @@
-import os
+import gradio as gr
 import json
-from tkinter import Tk, filedialog
 from huggingface_hub import InferenceClient
 
-# Load Hugging Face API token from environment
-HF_TOKEN = os.getenv("HF_TOKEN")
+# Hugging Face API Client
+HF_TOKEN = "YOUR_HF_TOKEN"  # or load from .env
 client = InferenceClient(token=HF_TOKEN)
 
-# Global variable to store JSON data
+# Store loaded JSON
 json_data = None
 
-def pick_json_file():
-    """Opens file picker and loads JSON into global variable."""
+def upload_json(file):
+    """Load JSON file from Gradio upload."""
     global json_data
-    Tk().withdraw()
-    file_path = filedialog.askopenfilename(filetypes=[("JSON Files", "*.json")])
-    if file_path:
-        with open(file_path, 'r') as f:
+    if file is None:
+        return "⚠ No file uploaded yet."
+    try:
+        with open(file.name, "r") as f:
             json_data = json.load(f)
-        print(f"Loaded JSON: {file_path}")
-    else:
-        print("No JSON selected.")
+        return f"✅ Loaded JSON file: {file.name}"
+    except Exception as e:
+        return f"❌ Error loading file: {e}"
 
 def chatbot(user_input, history):
+    """Chat with Mistral using optional JSON context."""
     global json_data
-    
+
     if history is None:
         history = []
-    
-    # If no JSON loaded yet, ask to pick one (optional)
-    if json_data is None:
-        pick_json_file()
 
-    # Prepare base messages
+    # Base system message
     messages = [{"role": "system", "content": "You are a helpful AI chatbot."}]
-    messages.extend(history)
-    
-    # Add JSON data as context if loaded
+
+    # Add JSON context if loaded
     if json_data:
         messages.append({
             "role": "system",
-            "content": f"Here is additional context in JSON format:\n{json.dumps(json_data, indent=2)}"
+            "content": f"Here is extra JSON context:\n{json.dumps(json_data, indent=2)}"
         })
 
-    # Add user question
+    # Add history + new user message
+    for human, bot in history:
+        messages.append({"role": "user", "content": human})
+        messages.append({"role": "assistant", "content": bot})
     messages.append({"role": "user", "content": user_input})
 
-    # Call Hugging Face Chat Completion API
+    # Call Mistral
     response = client.chat_completion(
         model="mistralai/Mistral-7B-Instruct-v0.3",
         messages=messages,
@@ -54,25 +52,21 @@ def chatbot(user_input, history):
     )
 
     bot_reply = response.choices[0].message["content"]
-
-    # Update history
-    history.append({"role": "user", "content": user_input})
-    history.append({"role": "assistant", "content": bot_reply})
-
-    return history, ""  # Clear input box
+    history.append((user_input, bot_reply))
+    return history, ""  # clear input
 
 # Gradio UI
 with gr.Blocks() as demo:
-    gr.Markdown("# 🤖 Niveditha's AI Chatbot")
+    gr.Markdown("## 📄 Mistral JSON-Aware Chatbot")
+    
+    file_upload = gr.File(label="Upload JSON File", file_types=[".json"])
+    upload_status = gr.Textbox(label="Upload Status", interactive=False)
+    file_upload.change(upload_json, inputs=file_upload, outputs=upload_status)
+    
+    chatbot_ui = gr.Chatbot()
+    msg = gr.Textbox(label="Your message")
+    send_btn = gr.Button("Send")
+    
+    send_btn.click(chatbot, inputs=[msg, chatbot_ui], outputs=[chatbot_ui, msg])
 
-    chatbot_ui = gr.Chatbot(type="messages")
-    msg = gr.Textbox(label="Type your message", placeholder="Ask me something...")
-    clear = gr.Button("Clear Chat")
-
-    state = gr.State([])
-
-    msg.submit(chatbot, [msg, state], [chatbot_ui, msg])
-    clear.click(lambda: ([], ""), None, [chatbot_ui, msg])
-
-# Launch app
 demo.launch()
